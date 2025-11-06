@@ -14,6 +14,9 @@ const itemRoutes = require("./routes/itemRoutes");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust reverse proxy (Railway/other PaaS) so req.ip and rate limiting work correctly
+app.set("trust proxy", 1);
+
 // Security Middleware
 app.use(
   helmet({

@@ -484,3 +484,29 @@ Dibuat untuk tugas Cloud Computing dan Security
 ---
 
 **Note**: Pastikan untuk mengubah semua secret keys dan credentials sebelum deployment ke production!
+
+## ⚙️ CI/CD (GitHub Actions)
+
+### CI (otomatis pada push/PR ke `main`)
+
+- Install dependencies (cache), lint (`npm run lint`), test (`npm test`), dan build Docker image untuk validasi.
+- File workflow: `.github/workflows/ci.yml`.
+
+### CD (opsional, manual atau saat push tag `v*.*.*`)
+
+- Build & push image Docker ke Docker Hub, lalu deploy ke server via SSH (gunakan `docker compose up -d`).
+- File workflow: `.github/workflows/cd.yml`.
+
+Siapkan Secrets di GitHub Repository Settings → Secrets and variables → Actions:
+
+- `DOCKERHUB_USERNAME`
+- `DOCKERHUB_TOKEN` (Personal Access Token atau Access Token Docker Hub)
+- `IMAGE_NAME` (contoh: `username/secure-restapi`)
+- Opsional untuk deploy via SSH:
+  - `SSH_HOST` (contoh: `your.server.com`)
+  - `SSH_USER` (contoh: `ubuntu`)
+  - `SSH_KEY` (private key, format PEM)
+
+Menjalankan CD secara manual:
+
+- Buka tab Actions → pilih workflow "CD" → Run workflow → isi `imageTag` (opsional) → Run.

@@ -1,0 +1,111 @@
+name: CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      imageTag:
+        description: 'Image tag (e.g., v1.0.0 or commit SHA)'
+        required: false
+        default: latest
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-and-push-image:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract tag
+        id: meta
+        run: |
+          if [ -n "${{ github.event.inputs.imageTag }}" ]; then
+            TAG="${{ github.event.inputs.imageTag }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          else
+            TAG="${GITHUB_SHA::7}"
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
+
+  deploy:
+    name: Deploy via SSH (docker-compose pull & up -d)
+    needs: build-and-push-image
+    runs-on: ubuntu-latest
+    if: ${{ secrets.SSH_HOST && secrets.SSH_USER && secrets.SSH_KEY }}
+    steps:
+      - name: Prepare deploy command
+        id: prep
+        run: |
+          DOCKER_IMAGE=${{ secrets.IMAGE_NAME }}
+          echo "image=$DOCKER_IMAGE" >> $GITHUB_OUTPUT
+
+      - name: Add SSH key
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Deploy on remote host
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          IMAGE: ${{ steps.prep.outputs.image }}
+          TAG: ${{ needs.build-and-push-image.outputs.tag || '' }}
+        run: |
+          # Determine tag (same logic as build job)
+          if [ -n "${{ github.event.inputs.imageTag }}" ]; then
+            TAG="${{ github.event.inputs.imageTag }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          else
+            TAG="${GITHUB_SHA::7}"
+          fi
+
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'EOF'
+          set -euo pipefail
+          cd ~/apps/secure-restapi || mkdir -p ~/apps/secure-restapi && cd ~/apps/secure-restapi
+
+          # Create a minimal docker-compose if not exists
+          if [ ! -f docker-compose.yml ]; then
+            cat > docker-compose.yml << COMPOSE
+version: '3.8'
+services:
+  api:
+    image: ${IMAGE}:${TAG}
+    container_name: secure-api-server
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./logs:/app/logs
+COMPOSE
+          fi
+
+          docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+          docker compose pull api || docker-compose pull api
+          docker compose up -d api || docker-compose up -d api
+          docker image prune -f
+EOF
+
+
