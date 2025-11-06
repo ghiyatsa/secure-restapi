@@ -469,10 +469,6 @@ Setelah pertama kali menjalankan aplikasi, default admin user akan dibuat:
 - Pastikan `JWT_SECRET` dan `JWT_REFRESH_SECRET` sudah di-set
 - Gunakan string yang kuat dan random untuk production
 
-## 📚 Dokumentasi Tambahan
-
-Lihat file `LAPORAN_TEKNIS.md` untuk dokumentasi lengkap proyek ini.
-
 ## 📄 License
 
 MIT License
