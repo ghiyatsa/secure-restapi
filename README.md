@@ -344,30 +344,22 @@ GET /health
 - Log semua authentication attempts
 - Error logging dengan stack traces
 
-## ☁️ Deployment ke Cloud Platform
-
-### Render
-
-1. Buat account di [Render](https://render.com)
-2. Connect repository GitHub Anda
-3. Buat PostgreSQL database baru
-4. Set environment variables:
-   - `DATABASE_URL` (dari Render PostgreSQL)
-   - `JWT_SECRET` (generate random string)
-   - `JWT_REFRESH_SECRET` (generate random string)
-   - `NODE_ENV=production`
-   - `PORT` (Render akan set otomatis)
-5. Deploy!
-
-HTTPS akan tersedia otomatis di Render.
+## ☁️ Deployment (Railway Recommended)
 
 ### Railway
 
 1. Buat account di [Railway](https://railway.app)
-2. Connect repository GitHub Anda
-3. Tambah PostgreSQL service
-4. Set environment variables seperti di atas
-5. Deploy!
+2. Deploy from GitHub repo Anda (Railway otomatis pakai `Dockerfile`)
+3. Tambah PostgreSQL service lalu copy `DATABASE_URL`
+4. Set environment variables:
+   - `DATABASE_URL` (dari Railway PostgreSQL)
+   - `JWT_SECRET` (random string minimal 32 chars)
+   - `JWT_REFRESH_SECRET` (random string minimal 32 chars)
+   - `NODE_ENV=production`
+   - `CORS_ORIGIN=*` (atau domain frontend Anda)
+5. Deploy dan akses URL `https://<subdomain>.up.railway.app`
+
+Lihat `DEPLOYMENT_GUIDE.md` untuk langkah lengkap.
 
 ### ElephantSQL / Supabase
 
