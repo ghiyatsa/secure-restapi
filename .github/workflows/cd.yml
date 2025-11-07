@@ -4,12 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       imageTag:
-        description: 'Image tag (e.g., v1.0.0 or commit SHA)'
+        description: "Image tag (e.g., v1.0.0 or commit SHA)"
         required: false
         default: latest
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
 
 jobs:
   build-and-push-image:
@@ -86,26 +86,23 @@ jobs:
 
           # Create a minimal docker-compose if not exists
           if [ ! -f docker-compose.yml ]; then
-            cat > docker-compose.yml << COMPOSE
-version: '3.8'
-services:
-  api:
-    image: ${IMAGE}:${TAG}
-    container_name: secure-api-server
-    restart: unless-stopped
-    env_file:
-      - .env
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./logs:/app/logs
-COMPOSE
+            {
+              echo "services:"
+              echo "  api:"
+              echo "    image: ${IMAGE}:${TAG}"
+              echo "    container_name: secure-api-server"
+              echo "    restart: unless-stopped"
+              echo "    env_file:"
+              echo "      - .env"
+              echo "    ports:"
+              echo '      - "3000:3000"'
+              echo "    volumes:"
+              echo "      - ./logs:/app/logs"
+            } > docker-compose.yml
           fi
 
           docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
           docker compose pull api || docker-compose pull api
           docker compose up -d api || docker-compose up -d api
           docker image prune -f
-EOF
-
-
+          EOF
