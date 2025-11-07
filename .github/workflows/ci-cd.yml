@@ -68,6 +68,21 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
 
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: secure_api_db_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
       - uses: actions/checkout@v3
 
@@ -82,7 +97,24 @@ jobs:
 
       - name: Test Docker image
         run: |
-          docker run -d --name test-container -p 3000:3000 secure-restapi:latest
+          docker run -d --name test-container -p 3000:3000 \
+            -e NODE_ENV=test \
+            -e PORT=3000 \
+            -e DB_HOST=host.docker.internal \
+            -e DB_PORT=5432 \
+            -e DB_NAME=secure_api_db_test \
+            -e DB_USER=postgres \
+            -e DB_PASSWORD=postgres \
+            -e JWT_SECRET=test-jwt-secret-key \
+            -e JWT_REFRESH_SECRET=test-refresh-secret-key \
+            -e ACCESS_TOKEN_EXPIRY=15m \
+            -e REFRESH_TOKEN_EXPIRY=7d \
+            -e RATE_LIMIT_WINDOW_MS=900000 \
+            -e RATE_LIMIT_MAX_REQUESTS=100 \
+            -e CORS_ORIGIN="*" \
+            -e BCRYPT_ROUNDS=10 \
+            --add-host=host.docker.internal:host-gateway \
+            secure-restapi:latest
           echo "Waiting for container to be ready..."
           for i in {1..30}; do
             if curl -f http://localhost:3000/health 2>/dev/null; then
