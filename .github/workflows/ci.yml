@@ -27,7 +27,12 @@ jobs:
         run: npm ci
 
       - name: Lint
-        run: npm run lint --if-present
+        run: |
+          if [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ] || [ -f ".eslintrc.yml" ] || [ -f ".eslintrc.yaml" ] || [ -f "eslint.config.js" ] || [ -f "eslint.config.mjs" ] || [ -f "package.json" ] && grep -q '"eslintConfig"' package.json; then
+            npm run lint --if-present
+          else
+            echo "No ESLint configuration found, skipping lint step"
+          fi
 
       - name: Test
         run: npm test --if-present

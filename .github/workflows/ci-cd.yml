@@ -83,8 +83,19 @@ jobs:
       - name: Test Docker image
         run: |
           docker run -d --name test-container -p 3000:3000 secure-restapi:latest
-          sleep 10
-          curl -f http://localhost:3000/health || exit 1
+          echo "Waiting for container to be ready..."
+          for i in {1..30}; do
+            if curl -f http://localhost:3000/health 2>/dev/null; then
+              echo "Health check passed!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Health check failed after 30 attempts"
+              docker logs test-container
+              exit 1
+            fi
+            sleep 2
+          done
           docker stop test-container
           docker rm test-container
 

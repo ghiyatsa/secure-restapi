@@ -51,7 +51,6 @@ jobs:
     name: Deploy via SSH (docker-compose pull & up -d)
     needs: build-and-push-image
     runs-on: ubuntu-latest
-    if: ${{ secrets.SSH_HOST && secrets.SSH_USER && secrets.SSH_KEY }}
     steps:
       - name: Prepare deploy command
         id: prep
